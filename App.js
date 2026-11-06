@@ -8,26 +8,91 @@
 // J S K Enterprises - Supabase-backed browser application.
 // Replace both values with Supabase > Project Settings > API > Project URL and anon/public key.
 // The anon key is designed for browser use. NEVER place the service_role key here.
-const SUPABASE_URL = "https://YOUR_PROJECT_REF.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_PUBLIC_KEY";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// J S K Enterprises - Supabase-backed browser application.
+// Replace both values with Supabase > Project Settings > API > Project URL and anon/public key.
+// The anon key is designed for browser use. NEVER place the service_role key here.
+const SUPABASE_URL = "https://sikavfghcubqptbevnqc.supabase.co";
+// IMPORTANT: Paste the Supabase anon/public key (or publishable key) from
+// Supabase Dashboard > Project Settings > API. Never use service_role/secret key here.
+const SUPABASE_ANON_KEY = "PASTE_YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY_HERE";
+
+const SUPABASE_CONFIGURED = Boolean(
+  SUPABASE_URL &&
+  SUPABASE_ANON_KEY &&
+  !SUPABASE_ANON_KEY.includes("PASTE_YOUR_")
+);
+const supabase = (window.supabase && SUPABASE_CONFIGURED)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    })
+  : null;
+
+function requireSupabaseConfig() {
+  if (supabase) return true;
+  const message = !window.supabase
+    ? "Supabase library did not load. Check your internet connection and refresh."
+    : "Supabase is not configured. Add your anon/public key in App.js before deploying.";
+  console.error(message);
+  const errorBox = $("loginError");
+  if (errorBox) { errorBox.textContent = message; errorBox.style.display = "block"; }
+  const toastBox = $("toast");
+  if (toastBox) { toastBox.textContent = message; toastBox.classList.add("show"); }
+  return false;
+}
 const STORE_DEFAULTS = { whatsapp_number:"9511228208", community_link:"https://chat.whatsapp.com/BiejjHkJqSaLBaowqVvtIO", whatsapp_message:"Hello J S K Enterprises, I am visiting your B2B Electricals items marketplace. Please share me more details", business_name:"J S K Enterprises", order_note:"Please confirm product availability and final bulk price before dispatch.", contact_email:"sumeet.khatri@gmail.com" };
 let products=[], blogs=[], orders=[], settings={...STORE_DEFAULTS}, activeTab="products", editProductId=null, editBlogId=null;
 const $=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function toast(m){const e=$("toast");if(e){e.textContent=m;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2800)}}
 function wa(message=settings.whatsapp_message){return `https://wa.me/${String(settings.whatsapp_number).replace(/\D/g,"")}?text=${encodeURIComponent(message)}`}
 function setupLinks(){["topWhatsapp","chatUsButton","contactWhatsapp","floatingWhatsapp"].forEach(id=>{if($(id))$(id).href=wa()});if($("communityButton"))$("communityButton").href=settings.community_link;if($("footerEmail"))$("footerEmail").href="mailto:"+settings.contact_email}
-async function loadSettings(){const {data,error}=await supabase.from("store_settings").select("*").eq("id",1).maybeSingle();if(!error&&data)settings={...settings,...data};setupLinks()}
-async function loadProducts(){const {data,error}=await supabase.from("products").select("*").eq("is_active",true).order("sort_order").order("created_at");if(error){console.error(error);return}products=data||[];renderProducts()}
-async function loadBlogs(){const {data,error}=await supabase.from("blogs").select("*").eq("is_published",true).order("published_at",{ascending:false});if(error){console.error(error);return}blogs=data||[];renderBlogs()}
+async function loadSettings(){if(!requireSupabaseConfig()){setupLinks();return}const {data,error}=await supabase.from("store_settings").select("*").eq("id",1).maybeSingle();if(error)console.error("Store settings load failed:",error);if(!error&&data)settings={...settings,...data};setupLinks()}
+async function loadProducts(){if(!requireSupabaseConfig())return;const {data,error}=await supabase.from("products").select("*").eq("is_active",true).order("sort_order").order("created_at");if(error){console.error("Products load failed:",error);toast(error.message);return}products=data||[];renderProducts()}
+async function loadBlogs(){if(!requireSupabaseConfig())return;const {data,error}=await supabase.from("blogs").select("*").eq("is_published",true).order("published_at",{ascending:false});if(error){console.error("Blogs load failed:",error);toast(error.message);return}blogs=data||[];renderBlogs()}
 function renderProducts(){const grid=$("productGrid");if(!grid)return;const q=($("searchProducts")?.value||"").toLowerCase(),cat=$("categoryFilter")?.value||"",cats=[...new Set(products.map(p=>p.category).filter(Boolean))];const list=products.filter(p=>(!q||(p.name+" "+p.description+" "+p.category).toLowerCase().includes(q))&&(!cat||p.category===cat));$("productCount").textContent=list.length+" items";$("categoryFilter").innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option>${esc(c)}</option>`).join("");$("categoryFilter").value=cat;$("categoryChips").innerHTML='<button class="category-chip" data-cat="">All</button>'+cats.map(c=>`<button class="category-chip" data-cat="${esc(c)}">${esc(c)}</button>`).join("");$("categoryChips").querySelectorAll("button").forEach(b=>{b.classList.toggle("active",b.dataset.cat===cat);b.onclick=()=>{$("categoryFilter").value=b.dataset.cat;renderProducts()}});grid.innerHTML=list.length?list.map(p=>`<article class="product-card product-clickable"><div class="product-image">${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.name)}">`:`<span class="product-emoji">${esc(p.emoji||"▦")}</span>`}</div><div class="category">${esc(p.category)}</div><h3>${esc(p.name)}</h3><p class="product-desc">${esc(p.description)}</p><div class="price-row"><span class="price">₹${Number(p.price||0).toLocaleString("en-IN")}</span><span class="per-piece">per piece</span></div><div class="card-actions"><a class="btn btn-green" target="_blank" href="${wa("Hello J S K Enterprises, I am interested in "+p.name+". Please share bulk pricing.")}">WhatsApp Inquiry</a><button class="btn btn-outline details" data-detail="${p.id}">View Details</button></div></article>`).join(""):'<div class="empty" style="grid-column:1/-1">No products match your search.</div>';grid.querySelectorAll("[data-detail]").forEach(b=>b.onclick=()=>openProduct(b.dataset.detail))}
 function openProduct(id){const p=products.find(x=>String(x.id)===String(id));if(!p)return;$("productModalBody").innerHTML=`<div class="detail-grid"><div class="detail-img">${p.image_url?`<img src="${esc(p.image_url)}">`:`<span class="product-emoji">${esc(p.emoji||"▦")}</span>`}</div><div class="detail-content"><div class="category">${esc(p.category)}</div><h3>${esc(p.name)}</h3><div class="price">₹${Number(p.price||0).toLocaleString("en-IN")} <small>/ piece</small></div><p>${esc(p.description)}</p><div class="order-note">${esc(p.order_note||settings.order_note)}</div><button class="btn btn-green" id="placeOrderBtn" style="width:100%">Place Order Request</button></div></div>`;$("placeOrderBtn").onclick=()=>{$("orderProductId").value=p.id;$("orderProductName").value=p.name;$("productModal").classList.remove("show");$("orderModal").classList.add("show")};$("productModal").classList.add("show")}
 function renderBlogs(){const root=$("blogGrid");if(!root)return;root.innerHTML=blogs.map(b=>`<article class="blog-card">${b.image_url?`<img class="blog-cover" src="${esc(b.image_url)}">`:`<div class="blog-icon">▤</div>`}<div class="category">${esc(b.category||"General")} · ${esc(b.published_at||"")}</div><h3>${esc(b.title)}</h3><p>${esc(b.excerpt)}</p><button class="btn btn-outline btn-sm" data-read="${b.id}">Read Article ↗</button></article>`).join("")||'<div class="empty" style="grid-column:1/-1">Blog posts will appear here.</div>';root.querySelectorAll("[data-read]").forEach(b=>b.onclick=()=>readBlog(b.dataset.read))}
 function readBlog(id){const b=blogs.find(x=>String(x.id)===String(id));if(!b)return;$("productModalBody").innerHTML=`${b.image_url?`<img class="blog-article-image" src="${esc(b.image_url)}">`:""}<div class="category">${esc(b.category)} · ${esc(b.published_at||"")}</div><h2 style="color:var(--navy);margin:7px 0 14px">${esc(b.title)}</h2><p style="white-space:pre-wrap;line-height:1.8;color:var(--muted)">${esc(b.body)}</p>`;$("productModal").classList.add("show")}
 async function saveRequest(row){const {error}=await supabase.from("orders").insert(row);if(error)throw error}
-async function login(e){e.preventDefault();$("loginError").style.display="none";const {data,error}=await supabase.auth.signInWithPassword({email:$("adminEmail").value.trim(),password:$("adminPassword").value});if(error){$("loginError").style.display="block";return}const {data:allowed,error:roleError}=await supabase.rpc("is_admin");if(roleError||!allowed){await supabase.auth.signOut();$("loginError").style.display="block";return}location.href="masters.html"}
-async function logout(){await supabase.auth.signOut();location.href="admin.html"}
-async function checkAdmin(){const {data:{user}}=await supabase.auth.getUser();if(!user)return false;const {data,error}=await supabase.rpc("is_admin");return !error&&data===true}
+async function login(e){
+  e.preventDefault();
+  const errorBox=$("loginError");
+  errorBox.style.display="none";
+  if(!requireSupabaseConfig())return;
+  const submit=e.submitter||$("loginForm").querySelector('button[type="submit"]');
+  if(submit){submit.disabled=true;submit.textContent="Checking...";}
+  try{
+    const {data,error}=await supabase.auth.signInWithPassword({
+      email:$("adminEmail").value.trim(),
+      password:$("adminPassword").value
+    });
+    if(error)throw new Error("Login failed: "+error.message);
+    if(!data.user?.id)throw new Error("Supabase login returned no user ID. Please try again.");
+    console.info("Supabase authenticated user UUID:",data.user.id);
+    const {data:allowed,error:roleError}=await supabase.rpc("is_admin");
+    if(roleError)throw new Error("Admin authorization check failed: "+roleError.message);
+    if(allowed!==true){
+      await supabase.auth.signOut();
+      throw new Error("Login succeeded, but this user's UUID is not present in public.admin_users. Add the exact UUID shown in Supabase Authentication > Users.");
+    }
+    location.href="master.html";
+  }catch(err){
+    console.error("Administrator login error:",err);
+    errorBox.textContent=err.message||"Unable to sign in. Check the browser console for details.";
+    errorBox.style.display="block";
+  }finally{
+    if(submit){submit.disabled=false;submit.textContent="Log In to Dashboard";}
+  }
+}
+async function logout(){if(supabase)await supabase.auth.signOut();location.href="admin.html"}
+async function checkAdmin(){
+  if(!requireSupabaseConfig())return false;
+  const {data:{user},error:userError}=await supabase.auth.getUser();
+  if(userError||!user)return false;
+  const {data,error}=await supabase.rpc("is_admin");
+  if(error){console.error("is_admin RPC failed:",error);return false;}
+  return data===true;
+}
 async function initMasters(){if(!$("dashboardView"))return;const ok=await checkAdmin();if(!ok){$("authRequired").style.display="block";return}$("authRequired").style.display="none";$("dashboardView").style.display="block";await loadSettings();await loadAdminData();document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>adminTab(b.dataset.tab,b));$("logoutBtn").onclick=logout;adminTab("products",document.querySelector('[data-tab="products"]'))}
 async function loadAdminData(){const [p,b,o,s]=await Promise.all([supabase.from("products").select("*").order("sort_order"),supabase.from("blogs").select("*").order("published_at",{ascending:false}),supabase.from("orders").select("*").order("created_at",{ascending:false}),supabase.from("store_settings").select("*").eq("id",1).maybeSingle()]);products=p.data||[];blogs=b.data||[];orders=o.data||[];if(s.data)settings={...settings,...s.data}}
 function adminTab(tab,btn){activeTab=tab;document.querySelectorAll(".admin-tabs button").forEach(x=>x.classList.toggle("active",x.dataset.tab===tab));renderAdmin()}
@@ -43,5 +108,24 @@ function wireCommon(){if($("themeToggle"))$("themeToggle").onclick=()=>{document
 if($("inquiryForm"))$("inquiryForm").onsubmit=async e=>{e.preventDefault();const row={name:$("inqName").value.trim(),phone:$("inqPhone").value.trim(),address:$("inqRequirement").value.trim(),product_name:"General Inquiry",status:"New"};try{await saveRequest(row);const msg=`Hello J S K Enterprises, I am ${row.name}. Phone: ${row.phone}. Requirement: ${row.address}`;e.target.reset();window.open(wa(msg),"_blank","noopener");toast("Inquiry submitted")}catch(err){toast(err.message)}};
 if($("orderForm"))$("orderForm").onsubmit=async e=>{e.preventDefault();const p=products.find(x=>String(x.id)===$("orderProductId").value);const row={product_id:p?.id||null,product_name:$("orderProductName").value,name:$("buyerName").value.trim(),phone:$("buyerPhone").value.trim(),address:$("buyerAddress").value.trim(),status:"New"};try{await saveRequest(row);e.target.reset();$("orderModal").classList.remove("show");window.location.href=wa(`Hello J S K Enterprises, I would like to place an order request. Product: ${row.product_name}. Name: ${row.name}. Phone: ${row.phone}. Delivery Address: ${row.address}.`)}catch(err){toast(err.message)}};
 if($("loginForm"))$("loginForm").onsubmit=login}
-async function init(){wireCommon();await loadSettings();if($("productGrid"))await loadProducts();if($("blogGrid"))await loadBlogs();if($("loginForm")){const {data:{session}}=await supabase.auth.getSession();if(session&&await checkAdmin())location.href="masters.html"}await initMasters()}
-document.addEventListener("DOMContentLoaded",init);
+async function init(){
+  wireCommon();
+  if(!requireSupabaseConfig())return;
+  await loadSettings();
+  if($("productGrid"))await loadProducts();
+  if($("blogGrid"))await loadBlogs();
+  if($("loginForm")){
+    const {data:{session},error}=await supabase.auth.getSession();
+    if(error)console.error("Session lookup failed:",error);
+    if(session&&await checkAdmin())location.href="master.html";
+  }
+  await initMasters();
+}
+document.addEventListener("DOMContentLoaded",()=>{
+  init().catch(err=>{
+    console.error("Application initialization failed:",err);
+    const errorBox=$("loginError");
+    if(errorBox){errorBox.textContent="Application error: "+(err.message||String(err));errorBox.style.display="block";}
+    else toast(err.message||"Application initialization failed. Check the console.");
+  });
+});
