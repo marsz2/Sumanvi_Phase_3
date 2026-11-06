@@ -1,6 +1,10 @@
 // J S K Enterprises - browser application module.
 // IMPORTANT: Supabase publishable/anon key is intended for browser use with RLS.
 // NEVER put a Supabase service_role key or an admin password in this file.
+// const SUPABASE_URL = "https://nuauobedjaonqzdlvjmt.supabase.co"; 
+// const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51YXVvYmVkamFvbnF6Z
+
+
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
