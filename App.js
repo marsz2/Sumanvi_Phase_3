@@ -20,7 +20,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_bAEIVCxLxNPc0RlPQsQQpQ_RSrYY4wX";
 const SUPABASE_CONFIGURED = Boolean(
   SUPABASE_URL &&
   SUPABASE_ANON_KEY &&
-  !SUPABASE_ANON_KEY.includes("PASTE_YOUR_")
+  !SUPABASE_ANON_KEY.includes("sb_publishable_bAEIVCxLxNPc0RlPQsQQpQ_RSrYY4wX")
 );
 const supabase = (window.supabase && SUPABASE_CONFIGURED)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
