@@ -12,10 +12,10 @@
 // J S K Enterprises - Supabase-backed browser application.
 // Replace both values with Supabase > Project Settings > API > Project URL and anon/public key.
 // The anon key is designed for browser use. NEVER place the service_role key here.
-const SUPABASE_URL = "https://sikavfghcubqptbevnqc.supabase.co";
+const SUPABASE_URL = "https://dqeqjepezknhgmherldg.supabase.co";
 // IMPORTANT: Paste the Supabase anon/public key (or publishable key) from
 // Supabase Dashboard > Project Settings > API. Never use service_role/secret key here.
-const SUPABASE_ANON_KEY = "PASTE_YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY_HERE";
+const SUPABASE_ANON_KEY = "sb_publishable_bAEIVCxLxNPc0RlPQsQQpQ_RSrYY4wX";
 
 const SUPABASE_CONFIGURED = Boolean(
   SUPABASE_URL &&
