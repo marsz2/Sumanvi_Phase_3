@@ -5,168 +5,43 @@
 // const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51YXVvYmVkamFvbnF6Z
 
 
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-
-const SUPABASE_URL = "https://akddsorkonjqsklropwj.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_80l8Xi4tLWYkiedUkO3p5Q_F8mNNrxm";
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-
-const STORE_DEFAULTS = {
-  whatsappNumber: "9511228208",
-  communityLink: "https://chat.whatsapp.com/BiejjHkJqSaLBaowqVvtIO",
-  whatsappMessage: "Hello J S K Enterprises, I am visiting your B2B Electricals items marketplace. Please share more details.",
-  orderNote: "Please confirm product availability and final bulk price before dispatch.",
-  businessName: "J S K Enterprises"
-};
-const sampleProducts = [
-  {name:"LED Bulb 9W",category:"Lighting Solutions",description:"Energy-efficient LED bulb for everyday commercial and residential use.",price:25,emoji:"💡",featured:true},
-  {name:"LED Bulb 15W",category:"Lighting Solutions",description:"Bright, reliable lighting for shops, offices and homes.",price:75,emoji:"💡",featured:true},
-  {name:"LED Tube Light",category:"Lighting Solutions",description:"Efficient LED tube light for offices, shops and commercial spaces.",price:80,emoji:"▰",featured:true},
-  {name:"LED Flood Light",category:"Lighting Solutions",description:"High-brightness lighting solution for outdoor and industrial areas.",price:280,emoji:"🔆",featured:true},
-  {name:"Switches",category:"Switches & Sockets",description:"Quality switches suitable for electrical supply and trade orders.",price:35,emoji:"▤"},
-  {name:"Sockets",category:"Switches & Sockets",description:"Electrical sockets for shops, homes and commercial requirements.",price:45,emoji:"◉"},
-  {name:"Wires & Cables",category:"Wires & Cables",description:"Electrical wires and cables for multiple installation needs.",price:120,emoji:"〰"},
-  {name:"MCB Protection Device",category:"Protection Devices",description:"Protection devices for electrical distribution and safety.",price:160,emoji:"▥"}
-];
-const sampleBlogs = [
-  {title:"LED Bulbs: Energy Saving vs Traditional Bulbs",category:"Lighting Guide",excerpt:"Learn how LED bulbs can help reduce energy consumption and provide long-lasting illumination.",body:"LED bulbs are designed to produce light efficiently while using less electricity than many traditional lighting options. For buyers, compare wattage, brightness, warranty, quality and intended use before selecting a product. For bulk orders, confirm specifications and availability with your supplier.",published_on:"2026-10-27"},
-  {title:"Benefits of LED Lighting for Businesses",category:"Business Tips",excerpt:"Explore the benefits of LED lighting for shops, offices, warehouses and commercial spaces.",body:"LED lighting can offer energy efficiency, a long service life and a wide range of brightness options. Businesses should select lighting based on the space, operating hours, colour temperature and required illumination. Ask for product details and warranty terms before bulk purchasing.",published_on:"2026-10-27"}
-];
-
-const $ = id => document.getElementById(id);
-const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function toast(message){ const el=$("toast"); if(!el)return; el.textContent=message; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),3000); }
-function waUrl(message=STORE_DEFAULTS.whatsappMessage, number=STORE_DEFAULTS.whatsappNumber){return `https://wa.me/${String(number).replace(/\D/g,"")}?text=${encodeURIComponent(message)}`;}
-function applyTheme(){if(localStorage.getItem("jsk_dark_mode")==="1")document.body.classList.add("dark");$("themeToggle")?.addEventListener("click",()=>{document.body.classList.toggle("dark");localStorage.setItem("jsk_dark_mode",document.body.classList.contains("dark")?"1":"0");});}
-async function getSettings(){
-  const {data,error}=await supabase.from("store_settings").select("key,value");
-  if(error) return STORE_DEFAULTS;
-  return {...STORE_DEFAULTS,...Object.fromEntries((data||[]).map(x=>[x.key,x.value]))};
-}
-async function getProducts(){
-  const {data,error}=await supabase.from("products").select("*").eq("is_active",true).order("sort_order",{ascending:true}).order("created_at",{ascending:false});
-  if(error){console.warn(error.message);return sampleProducts.map((p,i)=>({id:`sample-${i}`, ...p,image_url:""}));}
-  return data||[];
-}
-async function getBlogs(){
-  const {data,error}=await supabase.from("blogs").select("*").eq("is_published",true).order("published_on",{ascending:false});
-  if(error){console.warn(error.message);return sampleBlogs.map((b,i)=>({id:`sample-${i}`,...b}));}
-  return data||[];
-}
-function imageMarkup(p){return p.image_url?`<img src="${escapeHTML(p.image_url)}" alt="${escapeHTML(p.name)}" loading="lazy">`:`<span class="product-emoji">${escapeHTML(p.emoji||"▦")}</span>`;}
-function renderProductCards(products,settings){
-  const grid=$("productGrid"); if(!grid)return;
-  const q=($("searchProducts")?.value||"").toLowerCase(), cat=$("categoryFilter")?.value||"";
-  const cats=[...new Set(products.map(p=>p.category).filter(Boolean))];
-  const list=products.filter(p=>(!q||`${p.name} ${p.description} ${p.category}`.toLowerCase().includes(q))&&(!cat||p.category===cat));
-  $("productCount").textContent=`${list.length} items`;
-  $("categoryFilter").innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join("");
-  $("categoryFilter").value=cat;
-  $("categoryChips").innerHTML='<button class="category-chip" data-category="">All</button>'+cats.map(c=>`<button class="category-chip" data-category="${escapeHTML(c)}">${escapeHTML(c)}</button>`).join("");
-  $("categoryChips").querySelectorAll("button").forEach(b=>{b.classList.toggle("active",b.dataset.category===cat);b.onclick=()=>{$("categoryFilter").value=b.dataset.category;renderProductCards(products,settings);}});
-  grid.innerHTML=list.length?list.map(p=>`<article class="product-card"><div class="product-image">${imageMarkup(p)}</div><div class="category">${escapeHTML(p.category)}</div><h3>${escapeHTML(p.name)}</h3><p class="product-desc">${escapeHTML(p.description)}</p><div class="price-row"><span class="price">₹${Number(p.price||0).toLocaleString("en-IN")}</span><span class="per-piece">per piece</span></div><div class="card-actions"><a class="btn btn-green" target="_blank" rel="noopener" href="${waUrl(`Hello J S K Enterprises, I am interested in ${p.name}. Please share bulk pricing.`,settings.whatsappNumber)}">WhatsApp Inquiry</a><button class="btn btn-outline details" data-id="${p.id}">View Details</button><button class="btn btn-blue" data-call-id="${p.id}">Request Call</button></div></article>`).join(""):'<div class="empty" style="grid-column:1/-1">No products match your search.</div>';
-  grid.querySelectorAll("[data-id]").forEach(btn=>btn.addEventListener("click",()=>showProductDetail(products.find(p=>String(p.id)===btn.dataset.id),settings)));
-  grid.querySelectorAll("[data-call-id]").forEach(btn=>btn.addEventListener("click",()=>{const p=products.find(x=>String(x.id)===btn.dataset.callId);if(!p)return;$("callProduct").value=p.id;$("callProductName").value=p.name;$("callModal").classList.add("show");}));
-}
-function showProductDetail(p,settings){
-  if(!p)return; $("productModalBody").innerHTML=`<div class="detail-grid"><div class="detail-img">${imageMarkup(p)}</div><div class="detail-content"><div class="category">${escapeHTML(p.category)}</div><h3>${escapeHTML(p.name)}</h3><div class="price" style="margin-top:8px">₹${Number(p.price||0).toLocaleString("en-IN")} <span class="per-piece">/ piece</span></div><p>${escapeHTML(p.description)}</p><div class="order-note">${escapeHTML(p.note||settings.orderNote)}</div><a class="btn btn-green" target="_blank" rel="noopener" href="${waUrl(`Hello J S K Enterprises, I would like to enquire about ${p.name}.`,settings.whatsappNumber)}">Enquire on WhatsApp</a></div></div>`;
-  $("productModal").classList.add("show");
-}
-function renderBlogCards(blogs){
-  const root=$("blogGrid");if(!root)return;
-  root.innerHTML=blogs.length?blogs.map(b=>`<article class="blog-card">${b.image_url?`<img class="blog-cover" src="${escapeHTML(b.image_url)}" alt="${escapeHTML(b.title)}">`:'<div class="blog-icon">▤</div>'}<div class="category">${escapeHTML(b.category||"General")} · ${escapeHTML(b.published_on||"")}</div><h3>${escapeHTML(b.title)}</h3><p>${escapeHTML(b.excerpt||"")}</p><button class="btn btn-outline btn-sm" data-blog-id="${b.id}">Read Article ↗</button></article>`).join(""):'<div class="empty" style="grid-column:1/-1">Blog posts will appear here.</div>';
-  root.querySelectorAll("[data-blog-id]").forEach(btn=>btn.onclick=()=>{const b=blogs.find(x=>String(x.id)===btn.dataset.blogId);$("productModalBody").innerHTML=`${b.image_url?`<img class="blog-article-image" src="${escapeHTML(b.image_url)}">`:""}<div class="category">${escapeHTML(b.category||"General")} · ${escapeHTML(b.published_on||"")}</div><h2 style="color:var(--navy);margin:7px 0 14px">${escapeHTML(b.title)}</h2><p class="blog-body">${escapeHTML(b.body||b.excerpt)}</p>`;$("productModal").classList.add("show");});
-}
-async function submitInquiry(record){
-  const {error}=await supabase.from("inquiries").insert(record);
-  if(error)throw error;
-}
-async function initPublic(){
-  if(!$("productGrid")&&!$("blogGrid"))return;
-  applyTheme();
-  const settings=await getSettings();
-  ["topWhatsapp","heroWhatsapp","chatUsButton","contactWhatsapp"].forEach(id=>{if($(id))$(id).href=waUrl(settings.whatsappMessage,settings.whatsappNumber);});
-  if($("communityButton"))$("communityButton").href=settings.communityLink;
-  if($("popupCommunityLink"))$("popupCommunityLink").href=settings.communityLink;
-  if($("footerEmail"))$("footerEmail").href="mailto:sumeet.khatri@gmail.com";
-  const products=await getProducts(), blogs=await getBlogs();
-  renderProductCards(products,settings);renderBlogCards(blogs);
-  $("searchProducts")?.addEventListener("input",()=>renderProductCards(products,settings));
-  $("categoryFilter")?.addEventListener("change",()=>renderProductCards(products,settings));
-  $("closeProduct")?.addEventListener("click",()=>$("productModal").classList.remove("show"));
-  $("closeCall")?.addEventListener("click",()=>$("callModal").classList.remove("show"));
-  $("callModal")?.addEventListener("click",e=>{if(e.target===$("callModal"))$("callModal").classList.remove("show");});
-  $("callForm")?.addEventListener("submit",async e=>{e.preventDefault();const record={inquiry_type:"Request Call",customer_name:$("callName").value.trim(),phone:$("callPhone").value.trim(),product_name:$("callProductName").value,requirement:$("callRequirement").value.trim(),status:"New"};try{await submitInquiry(record);e.target.reset();$("callModal").classList.remove("show");toast("Call request submitted successfully.");}catch(err){toast(`Could not submit call request: ${err.message}`);}});
-
-  $("productModal")?.addEventListener("click",e=>{if(e.target===$("productModal"))$("productModal").classList.remove("show");});
-  $("inquiryForm")?.addEventListener("submit",async e=>{
-    e.preventDefault();const record={inquiry_type:"General Inquiry",customer_name:$("inqName").value.trim(),phone:$("inqPhone").value.trim(),requirement:$("inqRequirement").value.trim(),status:"New"};
-    try{await submitInquiry(record);toast("Inquiry submitted successfully.");const msg=`Hello J S K Enterprises, I am ${record.customer_name}. Phone: ${record.phone}. Requirement: ${record.requirement}`;e.target.reset();window.open(waUrl(msg,settings.whatsappNumber),"_blank","noopener");}
-    catch(err){toast(`Could not submit inquiry: ${err.message}`);}
-  });
-  if($("communityPopup")){ $("closeCommunity")?.addEventListener("click",()=>$("communityPopup").classList.remove("show"));$("communityLater")?.addEventListener("click",()=>$("communityPopup").classList.remove("show"));$("communityPopup").addEventListener("click",e=>{if(e.target===$("communityPopup"))$("communityPopup").classList.remove("show");});window.addEventListener("load",()=>setTimeout(()=>$("communityPopup").classList.add("show"),450));}
-}
-
-async function requireAdmin(){
-  const {data:{session}}=await supabase.auth.getSession();
-  if(!session)return {ok:false};
-  const {data,error}=await supabase.from("admin_users").select("user_id").eq("user_id",session.user.id).maybeSingle();
-  return {ok:!error&&!!data,user:session.user};
-}
-async function initLogin(){
-  if(!$("loginForm"))return;
-  $("loginForm").addEventListener("submit",async e=>{
-    e.preventDefault();$("loginError").style.display="none";
-    const {data,error}=await supabase.auth.signInWithPassword({email:$("adminEmail").value.trim(),password:$("adminPassword").value});
-    if(error){$("loginError").textContent=error.message;$("loginError").style.display="block";return;}
-    const {data:allowed,error:allowError}=await supabase.from("admin_users").select("user_id").eq("user_id",data.user.id).maybeSingle();
-    if(allowError||!allowed){await supabase.auth.signOut();$("loginError").textContent="This account is not authorised as an administrator. Add its Auth user ID to public.admin_users.";$("loginError").style.display="block";return;}
-    location.href="masters.html";
-  });
-  const check=await requireAdmin();if(check.ok)location.href="masters.html";
-}
-let adminProducts=[],adminBlogs=[];
-async function refreshMasters(){
-  const [p,b]=await Promise.all([supabase.from("products").select("*").order("sort_order"),supabase.from("blogs").select("*").order("published_on",{ascending:false})]);
-  if(p.error)throw p.error;if(b.error)throw b.error;adminProducts=p.data||[];adminBlogs=b.data||[];
-  renderAdminProductList();renderAdminBlogList();await renderInquiries();await loadSettingsForm();
-}
-function renderAdminProductList(){
-  $("productAdminList").innerHTML=adminProducts.map((p,i)=>`<div class="admin-item"><div class="item-info"><strong>${escapeHTML(p.name)}</strong><small>${escapeHTML(p.category)} · ₹${p.price} · Position ${i+1} · ${p.is_active?"Active":"Hidden"}</small></div><button class="btn btn-outline btn-sm" data-edit-product="${p.id}">Edit</button><button class="btn btn-outline btn-sm" data-toggle-product="${p.id}">${p.is_active?"Hide":"Show"}</button><button class="btn btn-outline btn-sm" data-delete-product="${p.id}">Delete</button></div>`).join("")||'<div class="empty">No products added yet.</div>';
-  $("productAdminList").querySelectorAll("[data-edit-product]").forEach(x=>x.onclick=()=>{const p=adminProducts.find(y=>y.id==x.dataset.editProduct);$("productId").value=p.id;$("pName").value=p.name;$("pCategory").value=p.category;$("pDescription").value=p.description;$("pPrice").value=p.price;$("pImage").value=p.image_url||"";$("pEmoji").value=p.emoji||"▦";$("pNote").value=p.note||"";$("pFeatured").checked=p.featured;});
-  $("productAdminList").querySelectorAll("[data-toggle-product]").forEach(x=>x.onclick=async()=>{const p=adminProducts.find(y=>y.id==x.dataset.toggleProduct);await supabase.from("products").update({is_active:!p.is_active}).eq("id",p.id);await refreshMasters();});
-  $("productAdminList").querySelectorAll("[data-delete-product]").forEach(x=>x.onclick=async()=>{if(confirm("Delete this product?")){const {error}=await supabase.from("products").delete().eq("id",x.dataset.deleteProduct);if(error)toast(error.message);else{toast("Product deleted");await refreshMasters();}}});
-}
-function renderAdminBlogList(){
-  $("blogAdminList").innerHTML=adminBlogs.map(b=>`<div class="admin-item"><div class="item-info"><strong>${escapeHTML(b.title)}</strong><small>${escapeHTML(b.category||"General")} · ${escapeHTML(b.published_on||"")} · ${b.is_published?"Published":"Draft"}</small></div><button class="btn btn-outline btn-sm" data-edit-blog="${b.id}">Edit</button><button class="btn btn-outline btn-sm" data-delete-blog="${b.id}">Delete</button></div>`).join("")||'<div class="empty">No blog posts yet.</div>';
-  $("blogAdminList").querySelectorAll("[data-edit-blog]").forEach(x=>x.onclick=()=>{const b=adminBlogs.find(y=>y.id==x.dataset.editBlog);$("blogId").value=b.id;$("bTitle").value=b.title;$("bCategory").value=b.category||"";$("bExcerpt").value=b.excerpt;$("bBody").value=b.body;$("bDate").value=b.published_on||"";$("bImage").value=b.image_url||"";});
-  $("blogAdminList").querySelectorAll("[data-delete-blog]").forEach(x=>x.onclick=async()=>{if(confirm("Delete this blog?")){const {error}=await supabase.from("blogs").delete().eq("id",x.dataset.deleteBlog);if(error)toast(error.message);else await refreshMasters();}});
-}
-async function renderInquiries(){
-  const {data,error}=await supabase.from("inquiries").select("*").order("created_at",{ascending:false});
-  if(error){$("inquiryTable").textContent=error.message;return;}
-  const rows=data||[];
-  $("inquiryTable").innerHTML=rows.length?`<table class="order-table"><thead><tr><th>Date</th><th>Type</th><th>Buyer</th><th>Phone</th><th>Product / Requirement</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows.map(o=>`<tr><td>${new Date(o.created_at).toLocaleString("en-IN")}</td><td>${escapeHTML(o.inquiry_type)}</td><td>${escapeHTML(o.customer_name)}</td><td>${escapeHTML(o.phone)}</td><td>${escapeHTML(o.product_name||o.requirement||"")}</td><td><select data-status="${o.id}"><option ${o.status==="New"?"selected":""}>New</option><option ${o.status==="Contacted"?"selected":""}>Contacted</option><option ${o.status==="Completed"?"selected":""}>Completed</option></select></td><td><button class="btn btn-outline btn-sm" data-del-inquiry="${o.id}">Delete</button></td></tr>`).join("")}</tbody></table>`:'<div class="empty">No orders or inquiries have been submitted yet.</div>';
-  $("inquiryTable").querySelectorAll("[data-status]").forEach(x=>x.onchange=async()=>{const {error}=await supabase.from("inquiries").update({status:x.value}).eq("id",x.dataset.status);if(error)toast(error.message);});
-  $("inquiryTable").querySelectorAll("[data-del-inquiry]").forEach(x=>x.onclick=async()=>{if(confirm("Delete this request?")){const {error}=await supabase.from("inquiries").delete().eq("id",x.dataset.delInquiry);if(error)toast(error.message);else renderInquiries();}});
-}
-async function loadSettingsForm(){
-  const s=await getSettings();$("sWhatsapp").value=s.whatsappNumber;$("sCommunity").value=s.communityLink;$("sMessage").value=s.whatsappMessage;$("sOrderNote").value=s.orderNote;
-}
-async function initMasters(){
-  if(!$("masterApp"))return;
-  const auth=await requireAdmin();
-  if(!auth.ok){$("authRequired").classList.remove("hidden");return;}
-  $("masterApp").classList.remove("hidden");$("signedInAs").textContent=auth.user.email||"Administrator";
-  $("logoutBtn").onclick=async()=>{await supabase.auth.signOut();location.href="admin.html";};
-  $("productForm").onsubmit=async e=>{e.preventDefault();const id=$("productId").value;const row={name:$("pName").value.trim(),category:$("pCategory").value.trim(),description:$("pDescription").value.trim(),price:Number($("pPrice").value),image_url:$("pImage").value.trim()||null,emoji:$("pEmoji").value.trim()||"▦",note:$("pNote").value.trim(),featured:$("pFeatured").checked,is_active:true};const q=id?supabase.from("products").update(row).eq("id",id):supabase.from("products").insert(row);const {error}=await q;if(error)toast(error.message);else{$("productForm").reset();$("productId").value="";toast("Product saved");await refreshMasters();}};
-  $("clearProduct").onclick=()=>{$("productId").value="";};
-  $("blogForm").onsubmit=async e=>{e.preventDefault();const id=$("blogId").value;const row={title:$("bTitle").value.trim(),category:$("bCategory").value.trim()||"General",excerpt:$("bExcerpt").value.trim(),body:$("bBody").value.trim(),published_on:$("bDate").value||new Date().toISOString().slice(0,10),image_url:$("bImage").value.trim()||null,is_published:true};const q=id?supabase.from("blogs").update(row).eq("id",id):supabase.from("blogs").insert(row);const {error}=await q;if(error)toast(error.message);else{$("blogForm").reset();$("blogId").value="";toast("Blog saved");await refreshMasters();}};
-  $("settingsForm").onsubmit=async e=>{e.preventDefault();const vals={whatsappNumber:$("sWhatsapp").value.trim(),communityLink:$("sCommunity").value.trim(),whatsappMessage:$("sMessage").value,orderNote:$("sOrderNote").value};const {error}=await supabase.from("store_settings").upsert(Object.entries(vals).map(([key,value])=>({key,value})),{onConflict:"key"});if(error)toast(error.message);else toast("Store settings saved.");};
-  $("exportCsv").onclick=async()=>{const {data,error}=await supabase.from("inquiries").select("*").order("created_at",{ascending:false});if(error){toast(error.message);return;}const cols=["created_at","inquiry_type","customer_name","phone","product_name","requirement","status"];const csv=[cols.join(","),...(data||[]).map(r=>cols.map(k=>'"'+String(r[k]??"").replace(/"/g,'""')+'"').join(","))].join("\r\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="jsk-inquiries.csv";a.click();URL.revokeObjectURL(a.href);};
-  try{await refreshMasters();}catch(err){toast(err.message);}
-}
-
-await initPublic();
-await initLogin();
-await initMasters();
+// J S K Enterprises - Supabase-backed browser application.
+// Replace both values with Supabase > Project Settings > API > Project URL and anon/public key.
+// The anon key is designed for browser use. NEVER place the service_role key here.
+const SUPABASE_URL = "https://YOUR_PROJECT_REF.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_PUBLIC_KEY";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const STORE_DEFAULTS = { whatsapp_number:"9511228208", community_link:"https://chat.whatsapp.com/BiejjHkJqSaLBaowqVvtIO", whatsapp_message:"Hello J S K Enterprises, I am visiting your B2B Electricals items marketplace. Please share me more details", business_name:"J S K Enterprises", order_note:"Please confirm product availability and final bulk price before dispatch.", contact_email:"sumeet.khatri@gmail.com" };
+let products=[], blogs=[], orders=[], settings={...STORE_DEFAULTS}, activeTab="products", editProductId=null, editBlogId=null;
+const $=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(m){const e=$("toast");if(e){e.textContent=m;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2800)}}
+function wa(message=settings.whatsapp_message){return `https://wa.me/${String(settings.whatsapp_number).replace(/\D/g,"")}?text=${encodeURIComponent(message)}`}
+function setupLinks(){["topWhatsapp","chatUsButton","contactWhatsapp","floatingWhatsapp"].forEach(id=>{if($(id))$(id).href=wa()});if($("communityButton"))$("communityButton").href=settings.community_link;if($("footerEmail"))$("footerEmail").href="mailto:"+settings.contact_email}
+async function loadSettings(){const {data,error}=await supabase.from("store_settings").select("*").eq("id",1).maybeSingle();if(!error&&data)settings={...settings,...data};setupLinks()}
+async function loadProducts(){const {data,error}=await supabase.from("products").select("*").eq("is_active",true).order("sort_order").order("created_at");if(error){console.error(error);return}products=data||[];renderProducts()}
+async function loadBlogs(){const {data,error}=await supabase.from("blogs").select("*").eq("is_published",true).order("published_at",{ascending:false});if(error){console.error(error);return}blogs=data||[];renderBlogs()}
+function renderProducts(){const grid=$("productGrid");if(!grid)return;const q=($("searchProducts")?.value||"").toLowerCase(),cat=$("categoryFilter")?.value||"",cats=[...new Set(products.map(p=>p.category).filter(Boolean))];const list=products.filter(p=>(!q||(p.name+" "+p.description+" "+p.category).toLowerCase().includes(q))&&(!cat||p.category===cat));$("productCount").textContent=list.length+" items";$("categoryFilter").innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option>${esc(c)}</option>`).join("");$("categoryFilter").value=cat;$("categoryChips").innerHTML='<button class="category-chip" data-cat="">All</button>'+cats.map(c=>`<button class="category-chip" data-cat="${esc(c)}">${esc(c)}</button>`).join("");$("categoryChips").querySelectorAll("button").forEach(b=>{b.classList.toggle("active",b.dataset.cat===cat);b.onclick=()=>{$("categoryFilter").value=b.dataset.cat;renderProducts()}});grid.innerHTML=list.length?list.map(p=>`<article class="product-card product-clickable"><div class="product-image">${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.name)}">`:`<span class="product-emoji">${esc(p.emoji||"▦")}</span>`}</div><div class="category">${esc(p.category)}</div><h3>${esc(p.name)}</h3><p class="product-desc">${esc(p.description)}</p><div class="price-row"><span class="price">₹${Number(p.price||0).toLocaleString("en-IN")}</span><span class="per-piece">per piece</span></div><div class="card-actions"><a class="btn btn-green" target="_blank" href="${wa("Hello J S K Enterprises, I am interested in "+p.name+". Please share bulk pricing.")}">WhatsApp Inquiry</a><button class="btn btn-outline details" data-detail="${p.id}">View Details</button></div></article>`).join(""):'<div class="empty" style="grid-column:1/-1">No products match your search.</div>';grid.querySelectorAll("[data-detail]").forEach(b=>b.onclick=()=>openProduct(b.dataset.detail))}
+function openProduct(id){const p=products.find(x=>String(x.id)===String(id));if(!p)return;$("productModalBody").innerHTML=`<div class="detail-grid"><div class="detail-img">${p.image_url?`<img src="${esc(p.image_url)}">`:`<span class="product-emoji">${esc(p.emoji||"▦")}</span>`}</div><div class="detail-content"><div class="category">${esc(p.category)}</div><h3>${esc(p.name)}</h3><div class="price">₹${Number(p.price||0).toLocaleString("en-IN")} <small>/ piece</small></div><p>${esc(p.description)}</p><div class="order-note">${esc(p.order_note||settings.order_note)}</div><button class="btn btn-green" id="placeOrderBtn" style="width:100%">Place Order Request</button></div></div>`;$("placeOrderBtn").onclick=()=>{$("orderProductId").value=p.id;$("orderProductName").value=p.name;$("productModal").classList.remove("show");$("orderModal").classList.add("show")};$("productModal").classList.add("show")}
+function renderBlogs(){const root=$("blogGrid");if(!root)return;root.innerHTML=blogs.map(b=>`<article class="blog-card">${b.image_url?`<img class="blog-cover" src="${esc(b.image_url)}">`:`<div class="blog-icon">▤</div>`}<div class="category">${esc(b.category||"General")} · ${esc(b.published_at||"")}</div><h3>${esc(b.title)}</h3><p>${esc(b.excerpt)}</p><button class="btn btn-outline btn-sm" data-read="${b.id}">Read Article ↗</button></article>`).join("")||'<div class="empty" style="grid-column:1/-1">Blog posts will appear here.</div>';root.querySelectorAll("[data-read]").forEach(b=>b.onclick=()=>readBlog(b.dataset.read))}
+function readBlog(id){const b=blogs.find(x=>String(x.id)===String(id));if(!b)return;$("productModalBody").innerHTML=`${b.image_url?`<img class="blog-article-image" src="${esc(b.image_url)}">`:""}<div class="category">${esc(b.category)} · ${esc(b.published_at||"")}</div><h2 style="color:var(--navy);margin:7px 0 14px">${esc(b.title)}</h2><p style="white-space:pre-wrap;line-height:1.8;color:var(--muted)">${esc(b.body)}</p>`;$("productModal").classList.add("show")}
+async function saveRequest(row){const {error}=await supabase.from("orders").insert(row);if(error)throw error}
+async function login(e){e.preventDefault();$("loginError").style.display="none";const {data,error}=await supabase.auth.signInWithPassword({email:$("adminEmail").value.trim(),password:$("adminPassword").value});if(error){$("loginError").style.display="block";return}const {data:allowed,error:roleError}=await supabase.rpc("is_admin");if(roleError||!allowed){await supabase.auth.signOut();$("loginError").style.display="block";return}location.href="masters.html"}
+async function logout(){await supabase.auth.signOut();location.href="admin.html"}
+async function checkAdmin(){const {data:{user}}=await supabase.auth.getUser();if(!user)return false;const {data,error}=await supabase.rpc("is_admin");return !error&&data===true}
+async function initMasters(){if(!$("dashboardView"))return;const ok=await checkAdmin();if(!ok){$("authRequired").style.display="block";return}$("authRequired").style.display="none";$("dashboardView").style.display="block";await loadSettings();await loadAdminData();document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>adminTab(b.dataset.tab,b));$("logoutBtn").onclick=logout;adminTab("products",document.querySelector('[data-tab="products"]'))}
+async function loadAdminData(){const [p,b,o,s]=await Promise.all([supabase.from("products").select("*").order("sort_order"),supabase.from("blogs").select("*").order("published_at",{ascending:false}),supabase.from("orders").select("*").order("created_at",{ascending:false}),supabase.from("store_settings").select("*").eq("id",1).maybeSingle()]);products=p.data||[];blogs=b.data||[];orders=o.data||[];if(s.data)settings={...settings,...s.data}}
+function adminTab(tab,btn){activeTab=tab;document.querySelectorAll(".admin-tabs button").forEach(x=>x.classList.toggle("active",x.dataset.tab===tab));renderAdmin()}
+function renderAdmin(){const root=$("adminContent");if(!root)return;if(activeTab==="products")root.innerHTML=`<div class="admin-grid"><form class="admin-form" id="productForm"><h3>${editProductId?"Edit Product":"Add Product"}</h3><div class="field"><label>Product Name *</label><input id="pName" required></div><div class="field"><label>Category *</label><input id="pCategory" required></div><div class="field"><label>Description *</label><textarea id="pDescription" required></textarea></div><div class="field"><label>Price per piece (₹) *</label><input id="pPrice" type="number" min="0" step=".01" required></div><div class="field"><label>Photo URL</label><input id="pImage" type="url" placeholder="https://..."></div><div class="field"><label>Image icon if no photo</label><input id="pEmoji" value="▦"></div><div class="field"><label>Order note</label><textarea id="pNote"></textarea></div><label><input id="pFeatured" type="checkbox"> Featured item</label><button class="btn btn-blue">${editProductId?"Save Product":"Add Product"}</button><button type="button" class="btn btn-outline" id="clearProduct">Clear</button></form><div class="admin-form"><h3>Product Listing</h3><div class="admin-list">${products.map(p=>`<div class="admin-item"><div class="item-info"><strong>${esc(p.name)}</strong><small>${esc(p.category)} · ₹${p.price}</small></div><button class="btn btn-outline btn-sm" data-editp="${p.id}">Edit</button><button class="btn btn-outline btn-sm" data-delp="${p.id}">Delete</button></div>`).join("")||'<div class="empty">No products yet.</div>'}</div></div></div>`;
+else if(activeTab==="blogs")root.innerHTML=`<div class="admin-grid"><form class="admin-form" id="blogForm"><h3>${editBlogId?"Edit Blog":"Add Blog Post"}</h3><div class="field"><label>Blog Title *</label><input id="bTitle" required></div><div class="field"><label>Category</label><input id="bCategory"></div><div class="field"><label>Short excerpt *</label><textarea id="bExcerpt" required></textarea></div><div class="field"><label>Full article *</label><textarea id="bBody" required style="min-height:150px"></textarea></div><div class="field"><label>Image URL</label><input id="bImage" type="url"></div><button class="btn btn-blue">${editBlogId?"Save Blog":"Publish Blog"}</button><button type="button" class="btn btn-outline" id="clearBlog">Clear</button></form><div class="admin-form"><h3>Published Blogs</h3><div class="admin-list">${blogs.map(b=>`<div class="admin-item"><div class="item-info"><strong>${esc(b.title)}</strong><small>${esc(b.category||"General")}</small></div><button class="btn btn-outline btn-sm" data-editb="${b.id}">Edit</button><button class="btn btn-outline btn-sm" data-delb="${b.id}">Delete</button></div>`).join("")}</div></div></div>`;
+else if(activeTab==="orders")root.innerHTML=`<div class="admin-form"><h3>Orders & Inquiries (${orders.length})</h3>${orders.length?`<table class="order-table"><thead><tr><th>Date</th><th>Buyer</th><th>Product / Requirement</th><th>Contact / Address</th><th>Status</th><th>Action</th></tr></thead><tbody>${orders.map(o=>`<tr><td>${esc(new Date(o.created_at).toLocaleString())}</td><td>${esc(o.name)}<br>${esc(o.phone)}</td><td>${esc(o.product_name||"General Inquiry")}</td><td>${esc(o.address)}</td><td><select data-status="${o.id}"><option ${o.status==="New"?"selected":""}>New</option><option ${o.status==="Contacted"?"selected":""}>Contacted</option><option ${o.status==="Completed"?"selected":""}>Completed</option></select></td><td><button class="btn btn-outline btn-sm" data-delo="${o.id}">Delete</button></td></tr>`).join("")}</tbody></table>`:'<div class="empty">No orders or inquiries yet.</div>'}</div>`;
+else root.innerHTML=`<form class="admin-form" id="settingsForm" style="max-width:700px"><h3>Store Settings</h3><div class="field"><label>WhatsApp Number</label><input id="sWhatsapp" required value="${esc(settings.whatsapp_number)}"></div><div class="field"><label>WhatsApp Community Link</label><input id="sCommunity" type="url" required value="${esc(settings.community_link)}"></div><div class="field"><label>Predefined WhatsApp Message</label><textarea id="sMessage" required>${esc(settings.whatsapp_message)}</textarea></div><div class="field"><label>Default order note</label><textarea id="sNote">${esc(settings.order_note)}</textarea></div><div class="field"><label>Contact email</label><input id="sEmail" type="email" value="${esc(settings.contact_email)}"></div><button class="btn btn-blue">Save Store Settings</button></form>`;
+bindAdminForms()}
+function bindAdminForms(){const pf=$("productForm");if(pf){if(editProductId){const p=products.find(x=>x.id===editProductId);if(p){$("pName").value=p.name;$("pCategory").value=p.category;$("pDescription").value=p.description;$("pPrice").value=p.price;$("pImage").value=p.image_url||"";$("pEmoji").value=p.emoji||"▦";$("pNote").value=p.order_note||"";$("pFeatured").checked=!!p.featured}}pf.onsubmit=async e=>{e.preventDefault();const row={name:$("pName").value.trim(),category:$("pCategory").value.trim(),description:$("pDescription").value.trim(),price:Number($("pPrice").value),image_url:$("pImage").value.trim()||null,emoji:$("pEmoji").value.trim(),order_note:$("pNote").value.trim(),featured:$("pFeatured").checked,is_active:true};const res=editProductId?await supabase.from("products").update(row).eq("id",editProductId):await supabase.from("products").insert(row);if(res.error){toast(res.error.message);return}editProductId=null;await loadAdminData();renderAdmin();toast("Product saved")};$("clearProduct").onclick=()=>{editProductId=null;renderAdmin()}}
+const bf=$("blogForm");if(bf){if(editBlogId){const b=blogs.find(x=>x.id===editBlogId);if(b){$("bTitle").value=b.title;$("bCategory").value=b.category;$("bExcerpt").value=b.excerpt;$("bBody").value=b.body;$("bImage").value=b.image_url||""}}bf.onsubmit=async e=>{e.preventDefault();const row={title:$("bTitle").value.trim(),category:$("bCategory").value.trim()||"General",excerpt:$("bExcerpt").value.trim(),body:$("bBody").value.trim(),image_url:$("bImage").value.trim()||null,is_published:true,published_at:new Date().toISOString().slice(0,10)};const res=editBlogId?await supabase.from("blogs").update(row).eq("id",editBlogId):await supabase.from("blogs").insert(row);if(res.error){toast(res.error.message);return}editBlogId=null;await loadAdminData();renderAdmin();toast("Blog saved")};$("clearBlog").onclick=()=>{editBlogId=null;renderAdmin()}}
+document.querySelectorAll("[data-editp]").forEach(b=>b.onclick=()=>{editProductId=b.dataset.editp;renderAdmin()});document.querySelectorAll("[data-delp]").forEach(b=>b.onclick=async()=>{if(confirm("Delete this product?")){const r=await supabase.from("products").delete().eq("id",b.dataset.delp);if(r.error)toast(r.error.message);else{await loadAdminData();renderAdmin()}}});document.querySelectorAll("[data-editb]").forEach(b=>b.onclick=()=>{editBlogId=b.dataset.editb;renderAdmin()});document.querySelectorAll("[data-delb]").forEach(b=>b.onclick=async()=>{if(confirm("Delete this blog?")){const r=await supabase.from("blogs").delete().eq("id",b.dataset.delb);if(r.error)toast(r.error.message);else{await loadAdminData();renderAdmin()}}});document.querySelectorAll("[data-status]").forEach(s=>s.onchange=async()=>{const r=await supabase.from("orders").update({status:s.value}).eq("id",s.dataset.status);if(r.error)toast(r.error.message)});document.querySelectorAll("[data-delo]").forEach(b=>b.onclick=async()=>{if(confirm("Delete this request?")){const r=await supabase.from("orders").delete().eq("id",b.dataset.delo);if(r.error)toast(r.error.message);else{await loadAdminData();renderAdmin()}}});const sf=$("settingsForm");if(sf)sf.onsubmit=async e=>{e.preventDefault();const row={id:1,whatsapp_number:$("sWhatsapp").value.trim(),community_link:$("sCommunity").value.trim(),whatsapp_message:$("sMessage").value,order_note:$("sNote").value,contact_email:$("sEmail").value.trim()};const r=await supabase.from("store_settings").upsert(row);if(r.error)toast(r.error.message);else{settings={...settings,...row};setupLinks();toast("Settings saved")}}}
+function wireCommon(){if($("themeToggle"))$("themeToggle").onclick=()=>{document.body.classList.toggle("dark");localStorage.setItem("jsk_dark_mode",document.body.classList.contains("dark")?"1":"0")};if(localStorage.getItem("jsk_dark_mode")==="1")document.body.classList.add("dark");if($("closeModal"))$("closeModal").onclick=()=>$("productModal").classList.remove("show");if($("closeOrderModal"))$("closeOrderModal").onclick=()=>$("orderModal").classList.remove("show");if($("searchProducts"))$("searchProducts").oninput=renderProducts;if($("categoryFilter"))$("categoryFilter").onchange=renderProducts;
+if($("inquiryForm"))$("inquiryForm").onsubmit=async e=>{e.preventDefault();const row={name:$("inqName").value.trim(),phone:$("inqPhone").value.trim(),address:$("inqRequirement").value.trim(),product_name:"General Inquiry",status:"New"};try{await saveRequest(row);const msg=`Hello J S K Enterprises, I am ${row.name}. Phone: ${row.phone}. Requirement: ${row.address}`;e.target.reset();window.open(wa(msg),"_blank","noopener");toast("Inquiry submitted")}catch(err){toast(err.message)}};
+if($("orderForm"))$("orderForm").onsubmit=async e=>{e.preventDefault();const p=products.find(x=>String(x.id)===$("orderProductId").value);const row={product_id:p?.id||null,product_name:$("orderProductName").value,name:$("buyerName").value.trim(),phone:$("buyerPhone").value.trim(),address:$("buyerAddress").value.trim(),status:"New"};try{await saveRequest(row);e.target.reset();$("orderModal").classList.remove("show");window.location.href=wa(`Hello J S K Enterprises, I would like to place an order request. Product: ${row.product_name}. Name: ${row.name}. Phone: ${row.phone}. Delivery Address: ${row.address}.`)}catch(err){toast(err.message)}};
+if($("loginForm"))$("loginForm").onsubmit=login}
+async function init(){wireCommon();await loadSettings();if($("productGrid"))await loadProducts();if($("blogGrid"))await loadBlogs();if($("loginForm")){const {data:{session}}=await supabase.auth.getSession();if(session&&await checkAdmin())location.href="masters.html"}await initMasters()}
+document.addEventListener("DOMContentLoaded",init);
