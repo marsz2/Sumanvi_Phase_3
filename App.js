@@ -12,6 +12,10 @@
 // J S K Enterprises - Supabase-backed browser application.
 // Use the Project URL and anon/publishable key from THE SAME Supabase project.
 // Never put a service_role/secret key in browser code.
+
+// J S K Enterprises - Supabase-backed browser application.
+// Use the Project URL and anon/publishable key from THE SAME Supabase project.
+// Never put a service_role/secret key in browser code.
 const SUPABASE_URL = "https://dqeqjepezknhgmherldg.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_bAEIVCxLxNPc0RlPQsQQpQ_RSrYY4wX";
 
@@ -127,7 +131,7 @@ async function init(){
   if($("loginForm")){
     const {data:{session},error}=await supabase.auth.getSession();
     if(error)console.error("Session lookup failed:",error);
-    if(session&&await checkAdmin())location.href="master.html";
+    if(session&&await checkAdmin())location.href="masters.html";
   }
   await initMasters();
 }
