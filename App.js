@@ -84,7 +84,7 @@ async function login(e){
       await supabase.auth.signOut();
       throw new Error("Login succeeded, but this user's UUID is not present in public.admin_users. Add the exact UUID shown in Supabase Authentication > Users.");
     }
-    location.href="master.html";
+    location.href="masters.html";
   }catch(err){
     console.error("Administrator login error:",err);
     errorBox.textContent=err.message||"Unable to sign in. Check the browser console for details.";
