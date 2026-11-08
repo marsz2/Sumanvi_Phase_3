@@ -100,3 +100,53 @@ on conflict do nothing;
 
 -- After creating the first admin account in Authentication > Users, replace UUID below:
 -- insert into public.admin_users(user_id) values ('PASTE_AUTH_USER_UUID_HERE');
+
+
+
+
+-- J S K Enterprises: safe administrator authorization repair
+-- Run this in Supabase SQL Editor as project owner.
+-- This does NOT delete or recreate any existing tables or records.
+
+-- 1) Replace the existing RPC with a narrowly scoped, stable admin check.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.admin_users AS au
+    WHERE au.user_id = (SELECT auth.uid())
+  );
+$function$;
+
+-- 2) Allow signed-in users to call the function; do not expose it to anon/public.
+REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.is_admin() FROM anon;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
+GRANT USAGE ON SCHEMA public TO authenticated;
+
+-- 3) Add the admin by email (recommended: avoids copying the wrong UUID).
+-- Replace the email below with the EXACT email used in Supabase Authentication > Users.
+INSERT INTO public.admin_users (user_id)
+SELECT u.id
+FROM auth.users AS u
+WHERE lower(u.email) = lower('REPLACE_WITH_YOUR_ADMIN_EMAIL')
+ON CONFLICT (user_id) DO NOTHING;
+
+-- 4) Verify that the exact Auth user is present in the admin allow-list.
+-- Expected: one row, with admin_registered = true.
+SELECT
+  u.id AS auth_user_uuid,
+  u.email,
+  (au.user_id IS NOT NULL) AS admin_registered
+FROM auth.users AS u
+LEFT JOIN public.admin_users AS au ON au.user_id = u.id
+WHERE lower(u.email) = lower('REPLACE_WITH_YOUR_ADMIN_EMAIL');
+
+-- If the verification query returns zero rows, the email does not exist in auth.users.
+-- Create/confirm the user first in Authentication > Users, then run this script again.
+
