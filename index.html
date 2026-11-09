@@ -97,6 +97,47 @@
 @media(max-width:900px){.product-order-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){.product-order-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
+
+/* Landing-page product card typography and spacing refinements */
+.product-card .category{
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:1.1px;
+  margin:7px 0 2px;
+}
+.product-card h3{
+  font-size:17px;
+  font-weight:900;
+  line-height:1.25;
+  margin:0;
+}
+.product-card .product-desc{
+  margin:4px 0;
+  line-height:1.4;
+}
+.product-card .price-row{
+  margin:4px 0 8px;
+}
+.product-card .price{
+  font-size:20px;
+  font-weight:900;
+}
+.product-card .per-piece{
+  font-size:11px;
+  font-weight:800;
+}
+@media(max-width:700px){
+  /* Two product cards per row on all mobile widths, including narrow phones. */
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}
+  .product-card{padding:8px}
+  .product-card .category{font-size:10px;margin:6px 0 2px;letter-spacing:.8px}
+  .product-card h3{font-size:15px;line-height:1.25}
+  .product-card .product-desc{font-size:10px;margin:3px 0;line-height:1.35}
+  .product-card .price-row{margin:3px 0 7px;gap:4px}
+  .product-card .price{font-size:18px}
+  .product-card .per-piece{font-size:10px}
+}
+
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body>
 <header class="topbar"><div class="container nav"><a href="index.html" class="brand"><span class="brand-mark">▦</span><span><strong>J S K Enterprises</strong><small>B2B ELECTRICALS ITEMS MARKETPLACE</small></span></a><nav class="navlinks"><a href="index.html">Home</a><a href="blog.html">Blog</a><a href="masters.html">Masters</a><a href="admin.html">Admin</a><button class="themebtn" id="themeToggle">☾</button><a class="btn btn-green btn-sm" id="topWhatsapp" href="#" target="_blank">Get Best Price</a></nav></div></header>
 <main><div class="container quick-actions"><div class="quick-card"><div><h3>Need help choosing products?</h3><p>Chat directly with J S K Enterprises on WhatsApp.</p></div><a id="chatUsButton" class="btn btn-green" href="#">Chat with Us</a></div><div class="quick-card"><div><h3>Join our WhatsApp Community</h3><p>Get updates and best offers for bulk buyers.</p></div><a id="communityButton" class="btn btn-blue" href="#">Join Community ↗</a></div></div>
