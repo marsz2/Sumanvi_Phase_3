@@ -1,3 +1,7 @@
+
+# 1.2
+
+
 # J S K Enterprises — GitHub + Supabase Marketplace
 
 This package separates the storefront, admin login, admin masters and blog into four HTML pages. `App.js` is the shared browser-side application module. Supabase provides hosted authentication and database services.
