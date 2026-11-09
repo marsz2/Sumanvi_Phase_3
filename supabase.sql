@@ -102,8 +102,6 @@ on conflict do nothing;
 -- insert into public.admin_users(user_id) values ('PASTE_AUTH_USER_UUID_HERE');
 
 
-
-
 -- J S K Enterprises: safe administrator authorization repair
 -- Run this in Supabase SQL Editor as project owner.
 -- This does NOT delete or recreate any existing tables or records.
@@ -150,3 +148,89 @@ WHERE lower(u.email) = lower('REPLACE_WITH_YOUR_ADMIN_EMAIL');
 -- If the verification query returns zero rows, the email does not exist in auth.users.
 -- Create/confirm the user first in Authentication > Users, then run this script again.
 
+---------------------------------------------------------------------------------------
+-- Media Bucket
+-- 1. Create the public image bucket
+INSERT INTO storage.buckets (
+    id,
+    name,
+    public,
+    file_size_limit,
+    allowed_mime_types
+)
+VALUES (
+    'jsk-media',
+    'jsk-media',
+    true,
+    8388608,
+    ARRAY[
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/gif'
+    ]
+)
+ON CONFLICT (id)
+DO UPDATE SET
+    public = true,
+    file_size_limit = 8388608,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+
+-- 2. Allow visitors to view uploaded images
+DROP POLICY IF EXISTS "Public can view jsk media" ON storage.objects;
+
+CREATE POLICY "Public can view jsk media"
+ON storage.objects
+FOR SELECT
+TO public
+USING (bucket_id = 'jsk-media');
+
+
+-- 3. Allow administrators to upload images
+DROP POLICY IF EXISTS "Admins can upload jsk media" ON storage.objects;
+
+CREATE POLICY "Admins can upload jsk media"
+ON storage.objects
+FOR INSERT
+TO authenticated
+WITH CHECK (
+    bucket_id = 'jsk-media'
+    AND (SELECT public.is_admin())
+);
+
+
+-- 4. Allow administrators to update images
+DROP POLICY IF EXISTS "Admins can update jsk media" ON storage.objects;
+
+CREATE POLICY "Admins can update jsk media"
+ON storage.objects
+FOR UPDATE
+TO authenticated
+USING (
+    bucket_id = 'jsk-media'
+    AND (SELECT public.is_admin())
+)
+WITH CHECK (
+    bucket_id = 'jsk-media'
+    AND (SELECT public.is_admin())
+);
+
+
+-- 5. Allow administrators to delete images
+DROP POLICY IF EXISTS "Admins can delete jsk media" ON storage.objects;
+
+CREATE POLICY "Admins can delete jsk media"
+ON storage.objects
+FOR DELETE
+TO authenticated
+USING (
+    bucket_id = 'jsk-media'
+    AND (SELECT public.is_admin())
+);
+
+
+-- 6. Verify bucket creation
+SELECT id, name, public, file_size_limit
+FROM storage.buckets
+WHERE id = 'jsk-media';
