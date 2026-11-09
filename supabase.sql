@@ -234,3 +234,46 @@ USING (
 SELECT id, name, public, file_size_limit
 FROM storage.buckets
 WHERE id = 'jsk-media';
+
+---------------------------------------------------------------------------------------------------------------------
+
+-- J S K Enterprises: product ordering and administrator CRUD migration
+-- Run once in Supabase SQL Editor for the SAME project configured in App.js.
+-- Existing products are retained; their order is normalized to 1, 2, 3, ... .
+
+ALTER TABLE public.products
+  ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 100;
+
+WITH ranked AS (
+  SELECT id,
+         ROW_NUMBER() OVER (ORDER BY sort_order NULLS LAST, created_at, id) AS new_position
+  FROM public.products
+)
+UPDATE public.products AS p
+SET sort_order = ranked.new_position
+FROM ranked
+WHERE p.id = ranked.id;
+
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+
+-- Public visitors can view active products; authenticated admins can add/edit/delete.
+DROP POLICY IF EXISTS "public read active products" ON public.products;
+CREATE POLICY "public read active products"
+ON public.products FOR SELECT TO anon, authenticated
+USING (is_active = true);
+
+DROP POLICY IF EXISTS "admins manage products" ON public.products;
+CREATE POLICY "admins manage products"
+ON public.products FOR ALL TO authenticated
+USING ((SELECT public.is_admin()))
+WITH CHECK ((SELECT public.is_admin()));
+
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT ON public.products TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.products TO authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+
+SELECT id, name, sort_order, is_active
+FROM public.products
+ORDER BY sort_order, id;
+
