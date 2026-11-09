@@ -62,7 +62,8 @@ async function uploadImage(file, folder){
 }
 
 function wa(message=settings.whatsapp_message){return `https://wa.me/${String(settings.whatsapp_number).replace(/\D/g,"")}?text=${encodeURIComponent(message)}`}
-function setupLinks(){["topWhatsapp","chatUsButton","contactWhatsapp","floatingWhatsapp"].forEach(id=>{if($(id))$(id).href=wa()});if($("communityButton"))$("communityButton").href=settings.community_link;if($("footerEmail"))$("footerEmail").href="mailto:"+settings.contact_email}
+function setupLinks(){["topWhatsapp","chatUsButton","contactWhatsapp","floatingWhatsapp"].forEach(id=>{if($(id))$(id).href=wa()});["communityButton","communityPopupJoin"].forEach(id=>{if($(id)){ $(id).href=settings.community_link; $(id).target="_blank"; $(id).rel="noopener"; }});if($("footerEmail"))$("footerEmail").href="mailto:"+settings.contact_email}
+function setupCommunityPopup(){const popup=$("communityPopup");if(!popup||!$("productGrid"))return;const close=()=>popup.classList.remove("show");["communityPopupClose","communityPopupLater"].forEach(id=>{if($(id))$(id).addEventListener("click",close)});popup.addEventListener("click",e=>{if(e.target===popup)close()});popup.classList.add("show");}
 async function loadSettings(){if(!requireSupabaseConfig()){setupLinks();return}const {data,error}=await supabase.from("store_settings").select("*").eq("id",1).maybeSingle();if(error)console.error("Store settings load failed:",error);if(!error&&data)settings={...settings,...data};setupLinks()}
 async function loadProducts(){if(!requireSupabaseConfig())return;const {data,error}=await supabase.from("products").select("*").eq("is_active",true).order("sort_order").order("created_at");if(error){console.error("Products load failed:",error);toast(error.message);return}products=data||[];renderProducts()}
 async function loadBlogs(){if(!requireSupabaseConfig())return;const {data,error}=await supabase.from("blogs").select("*").eq("is_published",true).order("published_at",{ascending:false});if(error){console.error("Blogs load failed:",error);toast(error.message);return}blogs=data||[];renderBlogs()}
@@ -193,6 +194,7 @@ async function init(){
   wireCommon();
   if(!requireSupabaseConfig())return;
   await loadSettings();
+  if($("productGrid"))setupCommunityPopup();
   if($("productGrid"))await loadProducts();
   if($("blogGrid"))await loadBlogs();
   if($("loginForm")){
@@ -210,3 +212,4 @@ document.addEventListener("DOMContentLoaded",()=>{
     else toast(err.message||"Application initialization failed. Check the console.");
   });
 });
+
